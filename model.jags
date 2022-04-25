@@ -1,1 +1,45 @@
+## Zheyi SHEN, s2258945
+
+
+## ------ Overview ------
+## This JAGS model to be called outside helps generate daily number of new infections n1, n2, ..., and the expected number of daily deaths, m1, m2, ... 
+
+## * x[i]: log (new infections on day i)
+## * n[i]: new infections on day i. Clearly, n[i] = exp(x[i])
+## Assume x[i] follows a 2nd order random walk (RW2) where 
+##          x[i+1] ~ N(2x[i] - x[i-1], tau)
+## 
+## * m[i]: expected number of deaths on day i
+## * y[i]: observed number of deaths on day i
+## Assume  y[i] follows a Poisson dist'n with mean m[i] where
+##          y[i] ~ Pois(m[i])     
+##
+## * N: number of observations in the dataset
+## * tau: the precision - 1/variance
+
+
+model{
+  ## Kick start the first 2 items of the RW2:
+  x[1] ~ dnorm(0, 0.01)
+  x[2] ~ dnorm(x[1],tau)
+  
+  ## The RW2 dist'n for x:
+  for (i in 3:N){ 
+    x[i] ~ dnorm(2*x[i-1] - x[i-2], tau)
+  }
+  
+  ## Calculate values of interest: n[i] and m[i]
+  for (i in 1:N){
+    n[i] <- exp(x[i]) 
+  }
+  
+  m <- B %*% n  ## B is a square matrix related to data, given in R file
+  
+  ## The Poisson dist'n for y:
+  for (i in 1:N){
+    y[i] ~ dpois(m[i]) 
+  }
+  
+  tau ~ dgamma(4, 0.04)  ## Prior for precision tau.
+}
 
